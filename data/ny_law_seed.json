@@ -1,0 +1,86 @@
+[
+  {
+    "category": "habitability",
+    "topic": "warranty_of_habitability",
+    "statute": "NY RPL § 235-b",
+    "summary": "Landlord must maintain the apartment in a habitable condition at all times. Any lease clause that waives this right is void and unenforceable.",
+    "source_url": "https://ag.ny.gov/tenants-rights-guide"
+  },
+  {
+    "category": "repairs",
+    "topic": "heat_requirement",
+    "statute": "NYC Admin Code § 27-2029",
+    "summary": "Heat must be provided Oct 1 – May 31. Between 6am-10pm, min 68°F when outside is below 55°F. Between 10pm-6am, min 62°F always.",
+    "source_url": "https://www.nyc.gov/site/hpd/services-and-information/heat-hot-water.page"
+  },
+  {
+    "category": "security_deposit",
+    "topic": "security_deposit_limit",
+    "statute": "NY RPL § 227-e / HSTPA 2019",
+    "summary": "Security deposit cannot exceed ONE month's rent (for leases signed after June 14, 2019). Any clause requiring more is illegal.",
+    "source_url": "https://ag.ny.gov/tenants-rights-guide"
+  },
+  {
+    "category": "security_deposit",
+    "topic": "deposit_return_deadline",
+    "statute": "NY RPL § 227-e",
+    "summary": "Landlord must return security deposit (with itemized deduction list) within 14 days of move-out. Failure forfeits the right to make any deductions.",
+    "source_url": "https://ag.ny.gov/tenants-rights-guide"
+  },
+  {
+    "category": "rent",
+    "topic": "rent_increase_notice",
+    "statute": "NY RPL § 226-c",
+    "summary": "For tenants in place 1-2 years, landlord must give 60 days written notice of rent increase or non-renewal. 2+ years = 90 days notice.",
+    "source_url": "https://hcr.ny.gov/tenant-rights"
+  },
+  {
+    "category": "entry",
+    "topic": "landlord_entry_notice",
+    "statute": "NY RPL § 235-e (common law)",
+    "summary": "Landlord must provide reasonable notice (typically 24 hours) before entering the apartment except in genuine emergencies. Lease clauses allowing entry without notice are unenforceable.",
+    "source_url": "https://ag.ny.gov/tenants-rights-guide"
+  },
+  {
+    "category": "eviction",
+    "topic": "eviction_notice_requirement",
+    "statute": "NY RPL § 232-a",
+    "summary": "Landlord must give 14-day written notice for non-payment, 10-day notice for lease violations, 30-day notice for month-to-month non-renewal.",
+    "source_url": "https://ag.ny.gov/tenants-rights-guide"
+  },
+  {
+    "category": "fees",
+    "topic": "late_fee_limit",
+    "statute": "NY RPL § 238-a",
+    "summary": "Late fees cannot exceed $50 or 5% of monthly rent (whichever is less), and cannot be charged until rent is 5+ days late.",
+    "source_url": "https://ag.ny.gov/tenants-rights-guide"
+  },
+  {
+    "category": "pets",
+    "topic": "pet_clause_nyc",
+    "statute": "NYC Admin Code § 27-2009.1",
+    "summary": "In NYC buildings with 3+ units, if a tenant openly keeps a pet for 3+ months with the landlord's knowledge, the landlord loses the right to evict over a no-pets clause (Pet Law).",
+    "source_url": "https://www.nyc.gov/site/hpd/renters/tenants-rights.page"
+  },
+  {
+    "category": "discrimination",
+    "topic": "source_of_income_discrimination",
+    "statute": "NYC Human Rights Law § 8-107",
+    "summary": "It is illegal for NYC landlords to refuse to rent or set different terms based on lawful source of income (including housing vouchers/Section 8). Any lease clause making vouchers a basis for denial is void.",
+    "source_url": "https://www.nyc.gov/site/cchr/law/source-of-income.page"
+  },
+  {
+    "category": "subletting",
+    "topic": "sublet_right",
+    "statute": "NY RPL § 226-b",
+    "summary": "Tenants in buildings with 4+ units have the right to sublet with landlord consent. Landlord cannot unreasonably withhold consent. Any lease clause prohibiting subletting entirely may be unenforceable.",
+    "source_url": "https://ag.ny.gov/tenants-rights-guide"
+  },
+  {
+    "category": "termination",
+    "topic": "domestic_violence_termination",
+    "statute": "NY RPL § 227-c",
+    "summary": "Domestic violence survivors can terminate a lease early by giving written notice + documentation. No penalty. Any lease clause that prohibits this is void.",
+    "source_url": "https://ag.ny.gov/tenants-rights-guide"
+  }
+]

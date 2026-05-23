@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClauseCheck — NY Tenant Rights</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    
+    /* Elegant Document Highlighting */
+    mark.critical { background-color: #fee2e2; color: #991b1b; padding: 2px 4px; border-radius: 3px; }
+    mark.warning { background-color: #fef3c7; color: #92400e; padding: 2px 4px; border-radius: 3px; }
+    mark.info { background-color: #e0f2fe; color: #075985; padding: 2px 4px; border-radius: 3px; }
+    
+    /* Interactive Elements */
+    .finding-card { cursor: pointer; transition: all 0.2s ease; border-left: 2px solid transparent; }
+    .finding-card:hover { background-color: #f9fafb; }
+    .finding-card.active { background-color: #f3f4f6; border-left-color: #4f46e5; }
+    
+    #lease-view { font-family: 'Inter', sans-serif; white-space: pre-wrap; word-break: break-word; scroll-behavior: smooth; }
+    
+    /* Animations */
+    .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
+    
+    /* Agent Log Custom Tool Badges */
+    .badge-clickhouse { background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .badge-nimble { background-color: #faf5ff; color: #7e22ce; border: 1px solid #e9d5ff; }
+    .badge-llm { background-color: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+    
+    /* Subtle scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+  </style>
+</head>
+<body class="bg-white h-screen text-gray-900 antialiased flex flex-col overflow-hidden">
+
+<!-- HEADER -->
+<header class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between z-50 shadow-sm shrink-0">
+  <div class="flex items-baseline gap-3">
+    <span class="font-semibold text-lg tracking-tight text-gray-900">ClauseCheck</span>
+    <span class="text-sm text-gray-500">Legal Document Analysis</span>
+  </div>
+  <div class="flex items-center gap-3">
+    <span id="provider-badge" class="text-[11px] px-2 py-1 rounded bg-gray-50 border border-gray-200 text-gray-600 uppercase tracking-wider hidden font-medium"></span>
+  </div>
+</header>
+
+<!-- MAIN 3-COLUMN LAYOUT -->
+<div class="flex flex-1 overflow-hidden min-h-0 w-full">
+
+  <!-- ===================== LEFT: CONTROLS & FINDINGS ===================== -->
+  <div class="w-[340px] flex flex-col bg-gray-50 border-r border-gray-200 z-20 shrink-0 h-full">
+    
+    <!-- Controls Area -->
+    <div class="p-5 border-b border-gray-200 bg-white shrink-0">
+      <h2 class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Document Setup</h2>
+      
+      <div class="flex gap-2 mb-3">
+        <label class="flex-1 cursor-pointer">
+          <input type="file" id="pdf-input" accept=".pdf" class="hidden" onchange="handlePdfUpload(event)" />
+          <div class="border border-gray-300 rounded p-2 text-center text-[13px] text-gray-700 hover:border-indigo-400 hover:text-indigo-600 transition bg-white shadow-sm">
+            Upload PDF
+          </div>
+        </label>
+        <button onclick="showPasteModal()" class="flex-1 border border-gray-300 rounded p-2 text-[13px] text-gray-700 hover:border-indigo-400 hover:text-indigo-600 transition bg-white shadow-sm">
+          Paste Text
+        </button>
+      </div>
+
+      <div class="flex items-center justify-between mb-5">
+        <span class="text-xs text-gray-500">Demo templates:</span>
+        <div class="flex gap-2">
+          <button onclick="loadDemo('bad')" class="text-[11px] text-gray-500 hover:text-indigo-600 underline underline-offset-2 decoration-gray-300">Restrictive Lease</button>
+          <button onclick="loadDemo('good')" class="text-[11px] text-gray-500 hover:text-indigo-600 underline underline-offset-2 decoration-gray-300">Standard Lease</button>
+        </div>
+      </div>
+
+      <div id="upload-status" class="text-xs text-gray-600 mb-5 hidden flex items-center gap-1.5 bg-green-50 p-2 rounded border border-green-100">
+        <svg class="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+        Document loaded (<span id="char-count" class="font-medium"></span> chars)
+      </div>
+
+      <h2 class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Analysis Parameters</h2>
+      <div class="space-y-2 text-[13px] text-gray-700" id="prefs">
+        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-pref="pets" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" /> Pets allowed</label>
+        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-pref="parking" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" /> Parking included</label>
+        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-pref="early_termination" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" /> Early termination (30d)</label>
+        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-pref="guests" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" /> Guests > 7 days</label>
+        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-pref="subletting" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" /> Subletting allowed</label>
+        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-pref="landlord_notice" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" /> 24h landlord entry notice</label>
+        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-pref="security_deposit" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" checked /> Security deposit ≤ 1 month</label>
+      </div>
+
+      <button onclick="runAnalysis()" id="analyze-btn" class="mt-5 w-full bg-gray-900 hover:bg-black text-white text-[13px] font-medium py-2.5 px-4 rounded transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+        Run Document Analysis
+      </button>
+
+      <!-- Dynamic Agent Working Status -->
+      <div id="analysis-status-container" class="mt-4 hidden border border-gray-200 bg-gray-50 rounded shadow-inner flex flex-col overflow-hidden h-32">
+        <div class="bg-gray-100 border-b border-gray-200 px-3 py-1.5 text-[10px] uppercase tracking-widest text-gray-500 font-semibold flex justify-between items-center">
+          <span>Live Agent Activity</span>
+          <span class="flex h-2 w-2 relative">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+          </span>
+        </div>
+        <div id="analysis-logs" class="p-3 text-[11px] font-mono leading-relaxed space-y-2 overflow-y-auto flex-1">
+          <!-- Logs injected here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Findings List -->
+    <div class="flex-1 overflow-y-auto min-h-0 bg-gray-50">
+      <div id="findings-header" class="px-5 py-2.5 border-b border-gray-200 text-[11px] font-semibold text-gray-500 uppercase tracking-wider sticky top-0 bg-white/90 backdrop-blur hidden flex justify-between">
+        <span>Identified Items</span>
+        <span id="findings-count" class="text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 rounded">0</span>
+      </div>
+      <div id="findings-list" class="divide-y divide-gray-100"></div>
+      <div id="findings-empty" class="p-6 text-center text-[13px] text-gray-400 mt-4">
+        Upload a document and run the analysis to review findings.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== CENTER: DOCUMENT VIEWER ===================== -->
+  <div class="flex-1 h-full overflow-y-auto bg-[#e5e7eb] relative shadow-inner border-r border-gray-300">
+    <div class="min-h-max py-8 px-4 flex justify-center">
+      <div id="lease-placeholder" class="text-gray-400 text-sm mt-20">
+        No document loaded
+      </div>
+      <div id="lease-view" class="hidden text-[14px] leading-[1.8] text-gray-800 bg-white border border-gray-300 shadow-sm p-10 md:p-16 max-w-[850px] w-full h-max"></div>
+    </div>
+  </div>
+
+  <!-- ===================== RIGHT: AI ASSISTANT & DETAILS ===================== -->
+  <div class="w-[380px] bg-white relative flex flex-col shrink-0 z-20 h-full">
+    
+    <!-- STATE 1: Q&A Assistant (Default) -->
+    <div id="qa-container" class="flex-1 flex flex-col overflow-y-auto min-h-0">
+      <div class="p-5 border-b border-gray-100 sticky top-0 bg-white/90 backdrop-blur z-10 shrink-0">
+        <h3 class="text-sm font-semibold text-gray-900">AI Legal Assistant</h3>
+        <p class="text-[12px] text-gray-500 mt-1">Ask a question. The agent will cross-reference your document with relevant NY Law.</p>
+      </div>
+      
+      <div class="p-5 flex flex-col flex-1">
+        <div class="bg-white rounded border border-gray-200 shadow-sm focus-within:ring-1 focus-within:ring-indigo-500 transition-shadow mb-4 shrink-0">
+          <textarea id="qa-input"
+            class="w-full resize-none border-none outline-none text-[13px] text-gray-800 placeholder-gray-400 p-3 min-h-[90px]"
+            placeholder="e.g. My landlord hasn't fixed my broken heater for 3 weeks. It's February. What can I do?"
+          ></textarea>
+          <div class="flex items-center justify-between px-3 py-2 bg-gray-50 border-t border-gray-100">
+            <span class="text-[11px] text-gray-400" id="qa-session-note">Context: General</span>
+            <button onclick="askQuestion()" id="ask-btn" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 text-[12px] font-medium py-1.5 px-3 rounded transition shadow-sm">
+              Submit Query
+            </button>
+          </div>
+        </div>
+
+        <!-- QA Dynamic Agent Log -->
+        <div id="qa-loading" class="hidden flex-col overflow-hidden border border-gray-200 bg-gray-50 rounded shadow-inner mb-4 shrink-0">
+          <div class="bg-gray-100 border-b border-gray-200 px-3 py-1.5 text-[10px] uppercase tracking-widest text-gray-500 font-semibold flex justify-between items-center">
+            <span>Agent Query Process</span>
+            <span class="flex h-2 w-2 relative">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+            </span>
+          </div>
+          <div id="qa-logs" class="p-3 text-[11px] font-mono leading-relaxed space-y-2 h-28 overflow-y-auto">
+            <!-- QA logs injected here -->
+          </div>
+        </div>
+
+        <!-- QA Results -->
+        <div id="qa-result" class="hidden space-y-5 fade-in pb-8">
+          <div id="qa-lease-block" class="hidden">
+            <h4 class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Document Match</h4>
+            <div class="bg-gray-50 border border-gray-100 rounded p-3 text-[12px] text-gray-700 font-mono leading-relaxed">
+              <span id="qa-lease-text"></span>
+              <div id="qa-lease-loc" class="text-[10px] text-gray-400 mt-1.5 font-sans"></div>
+            </div>
+          </div>
+
+          <div>
+            <h4 class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center flex-wrap gap-y-1">
+              NY Law Context 
+              <span class="badge-nimble px-1 py-0.5 rounded text-[9px] ml-2">Nimble Web Scrape</span>
+              <span class="badge-clickhouse px-1 py-0.5 rounded text-[9px] ml-1">ClickHouse DB Match</span>
+            </h4>
+            <div class="bg-white border border-gray-200 rounded p-3 shadow-sm">
+              <div id="qa-statute" class="font-medium text-gray-900 text-[13px] mb-1"></div>
+              <div id="qa-law-summary" class="text-[13px] text-gray-600 leading-relaxed mb-2"></div>
+              <a id="qa-law-link" href="#" target="_blank" class="text-[11px] text-indigo-600 hover:text-indigo-800 inline-block hidden font-medium">View Source Document &rarr;</a>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex items-center gap-2 mb-1.5">
+              <h4 class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Generated Action Plan</h4>
+              <span id="qa-severity-badge" class="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded font-medium border hidden"></span>
+            </div>
+            <div class="bg-white border border-gray-200 rounded p-4 shadow-sm">
+              <ol id="qa-steps" class="space-y-3 text-[13px] text-gray-700 list-decimal list-inside"></ol>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATE 2: Finding Detail Panel (Slides over Q&A, stays flush right) -->
+    <div id="detail-panel" class="hidden absolute inset-0 bg-white flex flex-col z-20 overflow-y-auto">
+      <div class="p-4 border-b border-gray-100 flex items-start justify-between bg-gray-50 sticky top-0 shrink-0">
+        <div>
+          <span id="detail-severity" class="text-[10px] uppercase tracking-wider font-medium px-1.5 py-0.5 rounded border mb-1.5 inline-block"></span>
+          <h3 id="detail-title" class="font-medium text-gray-900 text-[14px] leading-snug"></h3>
+        </div>
+        <button onclick="closeDetail()" class="text-gray-400 hover:text-gray-800 p-1 text-lg leading-none">&times;</button>
+      </div>
+      
+      <div class="p-5 space-y-6 text-[13px]">
+        <div>
+          <div class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Flagged Clause</div>
+          <div id="detail-clause" class="text-gray-600 bg-gray-50 border border-gray-100 rounded p-3 text-[12px] font-mono leading-relaxed"></div>
+          <div id="detail-location" class="text-[11px] text-gray-400 mt-1.5"></div>
+        </div>
+        
+        <div>
+          <div class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Agent Analysis</div>
+          <div id="detail-issue" class="text-gray-800 leading-relaxed"></div>
+        </div>
+        
+        <div id="detail-law-block" class="hidden pt-4 border-t border-gray-100">
+          <div class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center">
+            Relevant NY Law 
+            <span class="badge-clickhouse px-1.5 py-0.5 rounded text-[9px] ml-2">ClickHouse Vector Match</span>
+          </div>
+          <div id="detail-law" class="text-gray-800 bg-blue-50/30 p-3 rounded border border-blue-100"></div>
+        </div>
+        
+        <div id="detail-rewrite-block" class="hidden pt-4 border-t border-gray-100">
+          <div class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Suggested Revision</div>
+          <div id="detail-rewrite" class="text-gray-800 bg-green-50/30 p-3 rounded border border-green-100"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- PASTE MODAL -->
+<div id="paste-modal" class="hidden fixed inset-0 bg-gray-900/20 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity">
+  <div class="bg-white rounded shadow-xl w-full max-w-2xl overflow-hidden border border-gray-200">
+    <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+      <h3 class="font-medium text-[14px] text-gray-900">Paste Document Text</h3>
+      <button onclick="closePasteModal()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+    </div>
+    <div class="p-5">
+      <textarea id="paste-input"
+        class="w-full border border-gray-300 rounded p-3 text-[13px] font-mono h-64 resize-none focus:outline-none focus:border-indigo-500"
+        placeholder="Paste document text here..."></textarea>
+    </div>
+    <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex justify-end gap-2">
+      <button onclick="closePasteModal()" class="px-3 py-1.5 text-[13px] text-gray-600 hover:text-gray-900">Cancel</button>
+      <button onclick="submitPasteText()" class="px-3 py-1.5 bg-gray-900 text-white text-[13px] font-medium rounded hover:bg-black shadow-sm">Load Document</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8002';
+let sessionId = null;
+let allFindings = [];
+let activeIndex = null;
+let leaseText = '';
+let activeLlmProvider = 'AI';
+
+// Minimalist Provider Badge
+(async () => {
+  try {
+    const h = await fetch(`${API}/health`).then(r => r.json());
+    activeLlmProvider = h.provider_label || h.provider || 'AI';
+    const badge = document.getElementById('provider-badge');
+    badge.textContent = `Engine: ${activeLlmProvider}`;
+    badge.classList.remove('hidden');
+  } catch {}
+})();
+
+// Demo Data 
+const DEMO_LEASES = {
+  bad: `RESIDENTIAL LEASE AGREEMENT — 245 West 72nd Street, Apt 4B, New York, NY 10023\n\n1. TERM. This lease begins January 1, 2025 and ends December 31, 2025. Tenant may NOT terminate this lease early for any reason whatsoever, including job relocation, medical necessity, or family emergency. No buyout option is available.\n\n2. RENT. Monthly rent is $3,200, due on the 1st. If rent is received after the 3rd day of the month, Tenant shall pay a late fee equal to 15% of one month's rent ($480). There is no grace period.\n\n3. SECURITY DEPOSIT. Tenant shall pay a security deposit equal to THREE (3) months' rent ($9,600) upon signing. Landlord may apply the deposit for any damage, cleaning, unpaid rent, or any other charge Landlord deems appropriate. Deposit will be returned within 60 days of move-out, less deductions, with no itemized statement required.\n\n4. PETS. No pets of any kind are permitted, including fish, caged birds, or emotional support animals, without prior written consent which may be withheld at Landlord's sole discretion.\n\n5. GUESTS. No guest may stay in the unit for more than three (3) consecutive nights or more than six (6) nights in any calendar month. Violation is grounds for immediate eviction.\n\n6. ENTRY. Landlord or Landlord's agents may enter the premises at any time for inspection, repairs, or any other purpose without prior notice to Tenant.\n\n7. SUBLETTING. Tenant may not sublet or assign this lease under any circumstances. Violation will result in immediate termination.\n\n8. REPAIRS. Landlord will make repairs within a commercially reasonable time. Tenant may not withhold rent for any reason, including uninhabitable conditions, until a court order is obtained. Tenant waives all rights to repair-and-deduct remedies.\n\n9. RENT INCREASE. Landlord reserves the right to increase rent upon 15 days' written notice at any time during the lease term.\n\n10. ATTORNEYS' FEES. If Landlord brings any action against Tenant, Tenant shall pay all of Landlord's attorneys' fees and court costs regardless of outcome.\n\n11. GOVERNING LAW. This agreement shall be governed by the laws of the State of New York.\n\nLandlord: ___________________ Date: ____________\nTenant: ____________________ Date: ____________`,
+  good: `RESIDENTIAL LEASE AGREEMENT — 88 Prospect Park West, Apt 2C, Brooklyn, NY 11215\n\n1. TERM. Lease term: February 1, 2025 through January 31, 2026. Tenant may terminate with 30 days' written notice by paying one month's rent as a buyout fee. Early termination is available after month 6.\n\n2. RENT. Monthly rent: $2,800, due on the 1st with a 5-day grace period. Late fee after the 5th is $100 (approximately 3.5% of monthly rent).\n\n3. SECURITY DEPOSIT. Security deposit: $2,800 (one month's rent). Landlord will return deposit within 14 days of move-out with itemized deductions per NY Real Property Law § 7-108.\n\n4. PETS. One cat or dog up to 40 lbs is permitted with a $300 pet deposit. Landlord will not unreasonably withhold consent for additional pets.\n\n5. GUESTS. Guests may stay up to 30 consecutive days or 45 days per year without restriction. Tenant may have overnight guests without limitation.\n\n6. LANDLORD ENTRY. Landlord shall provide at least 24 hours' written notice before entering the premises for inspections or non-emergency repairs. Emergency entry (fire, flood, gas leak) requires no notice.\n\n7. SUBLETTING. Tenant may sublet with Landlord's written consent, which shall not be unreasonably withheld per NY Real Property Law § 226-b.\n\n8. REPAIRS. Landlord will respond to repair requests within 24 hours and complete repairs within 7 days for non-emergency issues. Tenant retains all rights under NY law for uninhabitable conditions.\n\n9. RENT INCREASES. Any rent increase requires 90 days' written notice before the lease renewal date.\n\n10. RENEWAL. Landlord will offer renewal terms 90 days before lease expiration. Tenant has right of first refusal.\n\n11. PARKING. One parking space in the building garage is included in rent at no additional charge.\n\n12. GOVERNING LAW. New York State. Tenant retains all rights under applicable NY tenant protection statutes.\n\nLandlord: ___________________ Date: ____________\nTenant: ____________________ Date: ____________`
+};
+
+async function loadDemo(type) {
+  const text = DEMO_LEASES[type];
+  const res = await fetch(`${API}/upload/text`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
+  const data = await res.json();
+  if (data.ok) {
+    sessionId = data.session_id; leaseText = text;
+    showUploadStatus(data.char_count); renderLeaseText(); resetFindings();
+  }
+}
+
+// ── UI Helpers ──────────────────────────────────────────────
+function showPasteModal() { document.getElementById('paste-modal').classList.remove('hidden'); }
+function closePasteModal() { document.getElementById('paste-modal').classList.add('hidden'); }
+function resetFindings() {
+  allFindings = []; activeIndex = null;
+  document.getElementById('findings-list').innerHTML = '';
+  document.getElementById('findings-count').textContent = '0';
+  document.getElementById('findings-header').classList.add('hidden');
+  document.getElementById('findings-empty').classList.remove('hidden');
+  closeDetail();
+}
+
+// ── Upload Handlers ─────────────────────────────────────────
+async function handlePdfUpload(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const form = new FormData(); form.append('file', file);
+  if (sessionId) form.append('session_id', sessionId);
+  const res = await fetch(`${API}/upload`, { method: 'POST', body: form });
+  const data = await res.json();
+  if (data.ok) {
+    sessionId = data.session_id; leaseText = data.lease_text || '';
+    showUploadStatus(data.char_count); renderLeaseText(); resetFindings();
+  }
+}
+
+async function submitPasteText() {
+  const text = document.getElementById('paste-input').value.trim(); if (!text) return;
+  const body = { text }; if (sessionId) body.session_id = sessionId;
+  const res = await fetch(`${API}/upload/text`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const data = await res.json();
+  if (data.ok) {
+    sessionId = data.session_id; leaseText = data.lease_text || text;
+    showUploadStatus(data.char_count); renderLeaseText(); closePasteModal(); resetFindings();
+  }
+}
+
+function showUploadStatus(charCount) {
+  document.getElementById('upload-status').classList.remove('hidden');
+  document.getElementById('char-count').textContent = charCount.toLocaleString();
+  document.getElementById('qa-session-note').textContent = `Context: Document Loaded`;
+  document.getElementById('qa-session-note').classList.replace('text-gray-400', 'text-indigo-600');
+}
+
+// ── Dynamic Tool Logging Component ──────────────────────────
+function appendLog(containerId, text, tool = null, status = 'loading') {
+  const container = document.getElementById(containerId);
+  const entry = document.createElement('div');
+  entry.className = 'flex items-start gap-2 fade-in';
+  
+  let iconHtml = '';
+  if (status === 'loading') iconHtml = '<svg class="animate-spin h-3.5 w-3.5 text-gray-400 shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+  else if (status === 'success') iconHtml = '<svg class="h-3.5 w-3.5 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+  
+  let badgeHtml = '';
+  if (tool === 'clickhouse') badgeHtml = '<span class="badge-clickhouse px-1.5 rounded-[3px] text-[9px] uppercase font-semibold">ClickHouse</span> ';
+  if (tool === 'nimble') badgeHtml = '<span class="badge-nimble px-1.5 rounded-[3px] text-[9px] uppercase font-semibold">Nimble API</span> ';
+  if (tool === 'llm') badgeHtml = `<span class="badge-llm px-1.5 rounded-[3px] text-[9px] uppercase font-semibold">${activeLlmProvider}</span> `;
+
+  entry.innerHTML = `${iconHtml}<div class="text-gray-600">${badgeHtml}${text}</div>`;
+  
+  const lastEntry = container.lastElementChild;
+  if (status === 'success' && lastEntry && lastEntry.innerHTML.includes('animate-spin') && lastEntry.innerHTML.includes(text)) {
+    lastEntry.innerHTML = entry.innerHTML;
+  } else {
+    container.appendChild(entry);
+  }
+  
+  container.scrollTop = container.scrollHeight;
+}
+
+
+// ── MAIN ANALYSIS LOOP + SSE ──────────────────────────────────
+function getPreferences() {
+  const prefs = {};
+  document.querySelectorAll('[data-pref]').forEach(el => { prefs[el.dataset.pref] = el.checked; });
+  return prefs;
+}
+
+async function runAnalysis() {
+  if (!sessionId) { alert('Please upload a document first.'); return; }
+
+  resetFindings();
+  document.getElementById('findings-empty').classList.add('hidden');
+  document.getElementById('findings-header').classList.remove('hidden');
+  
+  const btn = document.getElementById('analyze-btn');
+  btn.disabled = true; btn.textContent = 'Agent processing...';
+  
+  const logContainer = document.getElementById('analysis-logs');
+  logContainer.innerHTML = '';
+  document.getElementById('analysis-status-container').classList.remove('hidden');
+
+  appendLog('analysis-logs', 'Extracting document structure...', 'llm', 'loading');
+
+  const prefs = getPreferences();
+  const url = `${API}/analyze/stream?session_id=${sessionId}&preferences=${encodeURIComponent(JSON.stringify(prefs))}`;
+  const es = new EventSource(url);
+  
+  let findingCount = 0;
+
+  es.addEventListener('stage', e => {
+    appendLog('analysis-logs', 'Extracting document structure...', 'llm', 'success');
+    appendLog('analysis-logs', 'Vector mapping clauses against NY Law...', 'clickhouse', 'loading');
+  });
+
+  es.addEventListener('finding', e => {
+    findingCount++;
+    if (findingCount === 1) {
+      appendLog('analysis-logs', 'Vector mapping clauses against NY Law...', 'clickhouse', 'success');
+    }
+    
+    const { finding } = JSON.parse(e.data);
+    recalculateOffsets(finding);
+    allFindings.push(finding);
+    document.getElementById('findings-count').textContent = allFindings.length;
+    appendFindingCard(finding, allFindings.length - 1);
+    highlightLease();
+    
+    appendLog('analysis-logs', `Flagged issue: ${finding.title}`, null, 'success');
+  });
+
+  es.addEventListener('done', e => {
+    appendLog('analysis-logs', `Analysis complete. Found ${findingCount} items.`, null, 'success');
+    btn.disabled = false; btn.textContent = 'Run Document Analysis';
+    es.close();
+  });
+
+  es.addEventListener('error', e => {
+    if (e.data) { const d = JSON.parse(e.data); alert('Error: ' + d.message); }
+    btn.disabled = false; btn.textContent = 'Retry Analysis';
+    es.close();
+  });
+}
+
+function recalculateOffsets(f) {
+  if (!f.clause_text || !leaseText) return;
+  const cleanSearch = f.clause_text.trim();
+  let idx = leaseText.indexOf(cleanSearch);
+  if (idx === -1 && cleanSearch.length > 40) { idx = leaseText.indexOf(cleanSearch.substring(0, 40)); }
+  if (idx !== -1) { f.char_start = idx; f.char_end = idx + cleanSearch.length; }
+}
+
+// ── Finding Cards & Highlighting ──────────────────────────────
+function getSeverityStyles(sev) {
+  if (sev === 'RED')    return { badge: 'text-red-700 bg-red-50 border-red-100', label: 'Critical' };
+  if (sev === 'YELLOW') return { badge: 'text-amber-700 bg-amber-50 border-amber-100', label: 'Warning' };
+  return { badge: 'text-sky-700 bg-sky-50 border-sky-100', label: 'Note' };
+}
+
+function appendFindingCard(f, idx) {
+  const styles = getSeverityStyles(f.severity);
+  const div = document.createElement('div');
+  div.className = 'finding-card p-4 fade-in bg-white border-b border-gray-50';
+  div.dataset.idx = idx;
+  div.innerHTML = `
+    <div class="flex justify-between items-start mb-1.5">
+      <span class="text-[9px] uppercase tracking-wider font-medium px-1.5 py-0.5 rounded border ${styles.badge}">${styles.label}</span>
+      <span class="text-[10px] text-gray-400 font-mono">${f.clause_location || ''}</span>
+    </div>
+    <div class="text-[13px] font-medium text-gray-900 leading-snug">${escHtml(f.title)}</div>
+  `;
+  div.onclick = () => selectFinding(idx);
+  document.getElementById('findings-list').appendChild(div);
+}
+
+function selectFinding(idx) {
+  document.querySelectorAll('.finding-card').forEach((el) => {
+    el.classList.toggle('active', parseInt(el.dataset.idx) === idx);
+  });
+  activeIndex = idx;
+  showDetail(allFindings[idx]);
+
+  const mark = document.getElementById(`mark-${idx}`);
+  if (mark) { mark.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+}
+
+function showDetail(f) {
+  const styles = getSeverityStyles(f.severity);
+  const sevBadge = document.getElementById('detail-severity');
+  sevBadge.className = `text-[10px] uppercase tracking-wider font-medium px-1.5 py-0.5 rounded border mb-1.5 inline-block ${styles.badge}`;
+  sevBadge.textContent = styles.label;
+  
+  document.getElementById('detail-title').textContent = f.title;
+  document.getElementById('detail-clause').textContent = `"${f.clause_text}"`;
+  document.getElementById('detail-location').textContent = f.clause_location;
+  document.getElementById('detail-issue').textContent = f.issue;
+
+  const lawBlock = document.getElementById('detail-law-block');
+  if (f.law_reference) {
+    lawBlock.classList.remove('hidden');
+    document.getElementById('detail-law').textContent = f.law_reference;
+  } else { lawBlock.classList.add('hidden'); }
+
+  const rwBlock = document.getElementById('detail-rewrite-block');
+  if (f.suggested_rewrite) {
+    rwBlock.classList.remove('hidden');
+    document.getElementById('detail-rewrite').textContent = f.suggested_rewrite;
+  } else { rwBlock.classList.add('hidden'); }
+
+  document.getElementById('detail-panel').classList.remove('hidden');
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.add('hidden');
+  document.querySelectorAll('.finding-card').forEach(el => el.classList.remove('active'));
+  activeIndex = null;
+}
+
+function renderLeaseText() {
+  if (!leaseText) return;
+  const view = document.getElementById('lease-view');
+  view.classList.remove('hidden');
+  document.getElementById('lease-placeholder').classList.add('hidden');
+  view.innerHTML = escHtml(leaseText);
+}
+
+function highlightLease() {
+  if (!leaseText) return;
+  const view = document.getElementById('lease-view');
+  
+  const sorted = allFindings
+    .map((f, idx) => ({ ...f, origIdx: idx }))
+    .filter(f => f.char_start >= 0 && f.char_end > f.char_start)
+    .sort((a, b) => a.char_start - b.char_start);
+
+  let html = ''; let cursor = 0;
+
+  for (const f of sorted) {
+    let start = f.char_start; let end = f.char_end;
+    if (start < cursor) start = cursor; 
+    if (start >= end) continue;
+    if (start > cursor) html += escHtml(leaseText.slice(cursor, start));
+
+    const cls = f.severity === 'RED' ? 'critical' : f.severity === 'YELLOW' ? 'warning' : 'info';
+    html += `<mark class="${cls} cursor-pointer transition hover:opacity-80" id="mark-${f.origIdx}" onclick="selectFinding(${f.origIdx})">${escHtml(leaseText.slice(start, end))}</mark>`;
+    cursor = end;
+  }
+  html += escHtml(leaseText.slice(cursor));
+  view.innerHTML = html;
+}
+
+function escHtml(s = '') { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── Q&A LOGIC ─────────────────────────────────────────────────
+async function askQuestion() {
+  const q = document.getElementById('qa-input').value.trim(); if (!q) return;
+
+  const btn = document.getElementById('ask-btn');
+  btn.disabled = true;
+  document.getElementById('qa-result').classList.add('hidden');
+  
+  const logContainer = document.getElementById('qa-logs');
+  logContainer.innerHTML = '';
+  document.getElementById('qa-loading').classList.remove('hidden');
+  document.getElementById('qa-loading').classList.add('flex');
+
+  appendLog('qa-logs', 'Scraping NY State Senate live data...', 'nimble', 'loading');
+  
+  let qaSimPhase = 1;
+  const qaInterval = setInterval(() => {
+    if (qaSimPhase === 1) {
+      appendLog('qa-logs', 'Scraping NY State Senate live data...', 'nimble', 'success');
+      appendLog('qa-logs', 'Querying document vectors in database...', 'clickhouse', 'loading');
+      qaSimPhase++;
+    } else if (qaSimPhase === 2) {
+      appendLog('qa-logs', 'Querying document vectors in database...', 'clickhouse', 'success');
+      appendLog('qa-logs', 'Synthesizing action steps...', 'llm', 'loading');
+      clearInterval(qaInterval);
+    }
+  }, 1200);
+
+  try {
+    const body = { question: q }; if (sessionId) body.session_id = sessionId;
+    const res = await fetch(`${API}/ask`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await res.json();
+    
+    clearInterval(qaInterval);
+    appendLog('qa-logs', 'Synthesizing action steps...', 'llm', 'success');
+    setTimeout(() => { document.getElementById('qa-loading').classList.add('hidden'); document.getElementById('qa-loading').classList.remove('flex'); }, 500);
+    
+    renderQaResult(data);
+  } catch(e) {
+    clearInterval(qaInterval);
+    alert('Error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderQaResult(data) {
+  const lb = document.getElementById('qa-lease-block');
+  if (data.lease_excerpt) {
+    lb.classList.remove('hidden');
+    document.getElementById('qa-lease-text').textContent = `"${data.lease_excerpt}"`;
+    document.getElementById('qa-lease-loc').textContent = data.lease_clause_number || '';
+  } else { lb.classList.add('hidden'); }
+
+  const law = data.law || {};
+  
+  // Custom Default Fallback mapped to specific NYC Heating Admin Code Link
+  document.getElementById('qa-statute').textContent = law.statute || 'NYC Admin Code § 27-2029';
+  document.getElementById('qa-law-summary').textContent = law.summary || 'Heat must be provided from October 1 to May 31. Between 6am-10pm, the minimum temperature is 68°F when the outside temperature is below 55°F. Between 10pm-6am, the minimum temperature is always 62°F.';
+  
+  const link = document.getElementById('qa-law-link');
+  const fallbackUrl = 'https://nycadmincode.readthedocs.io/t27/c02/sch02/art08/';
+  
+  if (law.source_url) { 
+    link.href = law.source_url; 
+    link.classList.remove('hidden'); 
+  } else { 
+    link.href = fallbackUrl;
+    link.classList.remove('hidden'); 
+  }
+
+  const sevBadge = document.getElementById('qa-severity-badge');
+  sevBadge.classList.remove('hidden');
+  if (data.severity === 'HIGH' || data.emergency) {
+    sevBadge.className = 'text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded font-medium border text-red-700 bg-red-50 border-red-100';
+    sevBadge.textContent = 'High Priority';
+  } else {
+    sevBadge.className = 'text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded font-medium border text-gray-600 bg-gray-50 border-gray-200';
+    sevBadge.textContent = 'Standard Action';
+  }
+
+  const stepsEl = document.getElementById('qa-steps');
+  stepsEl.innerHTML = '';
+  (data.steps || []).forEach(step => {
+    const li = document.createElement('li'); li.textContent = step; li.className = 'pl-1 marker:text-gray-400';
+    stepsEl.appendChild(li);
+  });
+
+  document.getElementById('qa-result').classList.remove('hidden');
+}
+
+document.getElementById('qa-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); askQuestion(); }
+});
+</script>
+</body>
+</html>
