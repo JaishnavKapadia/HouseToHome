@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ClauseCheck — NY Tenant Rights</title>
+  <title>ClauseCheck — Legal Document Analysis</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,7 +27,7 @@
     .fade-in { animation: fadeIn 0.3s ease-out forwards; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
     
-    /* Agent Log Custom Tool Badges */
+    /* Tool Badges */
     .badge-clickhouse { background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
     .badge-nimble { background-color: #faf5ff; color: #7e22ce; border: 1px solid #e9d5ff; }
     .badge-llm { background-color: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
@@ -74,7 +74,7 @@
         </button>
       </div>
 
-      <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center justify-between mb-4">
         <span class="text-xs text-gray-500">Demo templates:</span>
         <div class="flex gap-2">
           <button onclick="loadDemo('bad')" class="text-[11px] text-gray-500 hover:text-indigo-600 underline underline-offset-2 decoration-gray-300">Restrictive Lease</button>
@@ -82,25 +82,30 @@
         </div>
       </div>
 
-      <div id="upload-status" class="text-xs text-gray-600 mb-5 hidden flex items-center gap-1.5 bg-green-50 p-2 rounded border border-green-100">
-        <svg class="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-        Document loaded (<span id="char-count" class="font-medium"></span> chars)
+      <div id="upload-status" class="text-xs text-gray-600 mb-5 hidden flex items-center gap-1.5 bg-green-50/50 p-2.5 rounded border border-green-100">
+        <svg class="w-4 h-4 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+        <span>Document loaded (<span id="char-count" class="font-medium"></span> chars)</span>
       </div>
 
-      <h2 class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Analysis Parameters</h2>
-      <div class="space-y-2 text-[13px] text-gray-700" id="prefs">
-        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-pref="pets" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" /> Pets allowed</label>
-        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-pref="parking" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" /> Parking included</label>
-        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-pref="early_termination" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" /> Early termination (30d)</label>
-        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-pref="guests" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" /> Guests > 7 days</label>
-        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-pref="subletting" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" /> Subletting allowed</label>
-        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-pref="landlord_notice" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" /> 24h landlord entry notice</label>
-        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-pref="security_deposit" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" checked /> Security deposit ≤ 1 month</label>
+      <h2 class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Analysis Parameters</h2>
+      <div class="space-y-2.5 text-[13px] text-gray-700" id="prefs">
+        <label class="flex items-center gap-2.5 cursor-pointer"><input type="checkbox" onchange="handlePrefChange()" data-pref="pets" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" /> Pets allowed</label>
+        <label class="flex items-center gap-2.5 cursor-pointer"><input type="checkbox" onchange="handlePrefChange()" data-pref="parking" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" /> Parking included</label>
+        <label class="flex items-center gap-2.5 cursor-pointer"><input type="checkbox" onchange="handlePrefChange()" data-pref="early_termination" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" /> Early termination (30d)</label>
+        <label class="flex items-center gap-2.5 cursor-pointer"><input type="checkbox" onchange="handlePrefChange()" data-pref="guests" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" /> Guests > 7 days</label>
+        <label class="flex items-center gap-2.5 cursor-pointer"><input type="checkbox" onchange="handlePrefChange()" data-pref="subletting" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" /> Subletting allowed</label>
+        <label class="flex items-center gap-2.5 cursor-pointer"><input type="checkbox" onchange="handlePrefChange()" data-pref="landlord_notice" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" /> 24h landlord entry notice</label>
+        <label class="flex items-center gap-2.5 cursor-pointer"><input type="checkbox" onchange="handlePrefChange()" data-pref="security_deposit" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" checked /> Security deposit ≤ 1 month</label>
       </div>
 
-      <button onclick="runAnalysis()" id="analyze-btn" class="mt-5 w-full bg-gray-900 hover:bg-black text-white text-[13px] font-medium py-2.5 px-4 rounded transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
-        Run Document Analysis
-      </button>
+      <div class="flex gap-2 mt-5">
+        <button onclick="runAnalysis()" id="analyze-btn" class="flex-1 bg-gray-900 hover:bg-black text-white text-[13px] font-medium py-2 px-3 rounded transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+          Run Analysis
+        </button>
+        <button onclick="resetAnalysis()" id="reset-btn" class="px-3 py-2 border border-gray-300 bg-white hover:bg-gray-50 text-gray-600 text-[13px] font-medium rounded transition shadow-sm hidden" title="Clear highlights and findings">
+          Clear
+        </button>
+      </div>
 
       <!-- Dynamic Agent Working Status -->
       <div id="analysis-status-container" class="mt-4 hidden border border-gray-200 bg-gray-50 rounded shadow-inner flex flex-col overflow-hidden h-32">
@@ -118,8 +123,8 @@
     </div>
 
     <!-- Findings List -->
-    <div class="flex-1 overflow-y-auto min-h-0 bg-gray-50">
-      <div id="findings-header" class="px-5 py-2.5 border-b border-gray-200 text-[11px] font-semibold text-gray-500 uppercase tracking-wider sticky top-0 bg-white/90 backdrop-blur hidden flex justify-between">
+    <div class="flex-1 overflow-y-auto min-h-0 bg-gray-50 relative">
+      <div id="findings-header" class="px-5 py-2.5 border-b border-gray-200 text-[11px] font-semibold text-gray-500 uppercase tracking-wider sticky top-0 bg-white/90 backdrop-blur hidden flex justify-between z-10">
         <span>Identified Items</span>
         <span id="findings-count" class="text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 rounded">0</span>
       </div>
@@ -132,11 +137,18 @@
 
   <!-- ===================== CENTER: DOCUMENT VIEWER ===================== -->
   <div class="flex-1 h-full overflow-y-auto bg-[#e5e7eb] relative shadow-inner border-r border-gray-300">
+    
+    <!-- Loading Overlay for Large Documents -->
+    <div id="doc-loading-overlay" class="hidden absolute inset-0 bg-white/70 backdrop-blur-sm z-30 flex flex-col items-center justify-center gap-3">
+      <svg class="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+      <span class="text-sm font-medium text-gray-700">Rendering document...</span>
+    </div>
+
     <div class="min-h-max py-8 px-4 flex justify-center">
       <div id="lease-placeholder" class="text-gray-400 text-sm mt-20">
         No document loaded
       </div>
-      <div id="lease-view" class="hidden text-[14px] leading-[1.8] text-gray-800 bg-white border border-gray-300 shadow-sm p-10 md:p-16 max-w-[850px] w-full h-max"></div>
+      <div id="lease-view" class="hidden text-[14px] leading-[1.8] text-gray-800 bg-white border border-gray-300 shadow-sm p-10 md:p-16 max-w-[850px] w-full h-max transition-opacity duration-300"></div>
     </div>
   </div>
 
@@ -173,9 +185,7 @@
               <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
             </span>
           </div>
-          <div id="qa-logs" class="p-3 text-[11px] font-mono leading-relaxed space-y-2 h-28 overflow-y-auto">
-            <!-- QA logs injected here -->
-          </div>
+          <div id="qa-logs" class="p-3 text-[11px] font-mono leading-relaxed space-y-2 h-28 overflow-y-auto"></div>
         </div>
 
         <!-- QA Results -->
@@ -215,7 +225,7 @@
     </div>
 
     <!-- STATE 2: Finding Detail Panel (Slides over Q&A, stays flush right) -->
-    <div id="detail-panel" class="hidden absolute inset-0 bg-white flex flex-col z-20 overflow-y-auto">
+    <div id="detail-panel" class="hidden absolute inset-0 bg-white flex flex-col z-20 overflow-y-auto shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)]">
       <div class="p-4 border-b border-gray-100 flex items-start justify-between bg-gray-50 sticky top-0 shrink-0">
         <div>
           <span id="detail-severity" class="text-[10px] uppercase tracking-wider font-medium px-1.5 py-0.5 rounded border mb-1.5 inline-block"></span>
@@ -255,7 +265,7 @@
 </div>
 
 <!-- PASTE MODAL -->
-<div id="paste-modal" class="hidden fixed inset-0 bg-gray-900/20 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity">
+<div id="paste-modal" class="hidden fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity">
   <div class="bg-white rounded shadow-xl w-full max-w-2xl overflow-hidden border border-gray-200">
     <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50">
       <h3 class="font-medium text-[14px] text-gray-900">Paste Document Text</h3>
@@ -274,12 +284,15 @@
 </div>
 
 <script>
-const API = 'http://localhost:8002';
+const API = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'http://localhost:8002'
+  : (window.API_URL || 'https://REPLACE-ME.onrender.com');
 let sessionId = null;
 let allFindings = [];
 let activeIndex = null;
 let leaseText = '';
 let activeLlmProvider = 'AI';
+let analysisEventSource = null;
 
 // Minimalist Provider Badge
 (async () => {
@@ -298,58 +311,120 @@ const DEMO_LEASES = {
   good: `RESIDENTIAL LEASE AGREEMENT — 88 Prospect Park West, Apt 2C, Brooklyn, NY 11215\n\n1. TERM. Lease term: February 1, 2025 through January 31, 2026. Tenant may terminate with 30 days' written notice by paying one month's rent as a buyout fee. Early termination is available after month 6.\n\n2. RENT. Monthly rent: $2,800, due on the 1st with a 5-day grace period. Late fee after the 5th is $100 (approximately 3.5% of monthly rent).\n\n3. SECURITY DEPOSIT. Security deposit: $2,800 (one month's rent). Landlord will return deposit within 14 days of move-out with itemized deductions per NY Real Property Law § 7-108.\n\n4. PETS. One cat or dog up to 40 lbs is permitted with a $300 pet deposit. Landlord will not unreasonably withhold consent for additional pets.\n\n5. GUESTS. Guests may stay up to 30 consecutive days or 45 days per year without restriction. Tenant may have overnight guests without limitation.\n\n6. LANDLORD ENTRY. Landlord shall provide at least 24 hours' written notice before entering the premises for inspections or non-emergency repairs. Emergency entry (fire, flood, gas leak) requires no notice.\n\n7. SUBLETTING. Tenant may sublet with Landlord's written consent, which shall not be unreasonably withheld per NY Real Property Law § 226-b.\n\n8. REPAIRS. Landlord will respond to repair requests within 24 hours and complete repairs within 7 days for non-emergency issues. Tenant retains all rights under NY law for uninhabitable conditions.\n\n9. RENT INCREASES. Any rent increase requires 90 days' written notice before the lease renewal date.\n\n10. RENEWAL. Landlord will offer renewal terms 90 days before lease expiration. Tenant has right of first refusal.\n\n11. PARKING. One parking space in the building garage is included in rent at no additional charge.\n\n12. GOVERNING LAW. New York State. Tenant retains all rights under applicable NY tenant protection statutes.\n\nLandlord: ___________________ Date: ____________\nTenant: ____________________ Date: ____________`
 };
 
-async function loadDemo(type) {
-  const text = DEMO_LEASES[type];
-  const res = await fetch(`${API}/upload/text`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
-  const data = await res.json();
-  if (data.ok) {
-    sessionId = data.session_id; leaseText = text;
-    showUploadStatus(data.char_count); renderLeaseText(); resetFindings();
-  }
-}
-
 // ── UI Helpers ──────────────────────────────────────────────
 function showPasteModal() { document.getElementById('paste-modal').classList.remove('hidden'); }
 function closePasteModal() { document.getElementById('paste-modal').classList.add('hidden'); }
-function resetFindings() {
+
+// Clear Analysis Only (Leaves Document Intact)
+function resetAnalysis() {
+  if (analysisEventSource) { analysisEventSource.close(); }
   allFindings = []; activeIndex = null;
+  
+  // Reset Lists & UI
   document.getElementById('findings-list').innerHTML = '';
   document.getElementById('findings-count').textContent = '0';
   document.getElementById('findings-header').classList.add('hidden');
   document.getElementById('findings-empty').classList.remove('hidden');
+  document.getElementById('reset-btn').classList.add('hidden');
+  document.getElementById('analyze-btn').disabled = false;
+  document.getElementById('analyze-btn').textContent = 'Run Analysis';
+  
+  // Clear Logs
+  document.getElementById('analysis-logs').innerHTML = '';
+  document.getElementById('analysis-status-container').classList.add('hidden');
+  
   closeDetail();
+  renderLeaseTextAsync(false); // Re-render document without highlights
+}
+
+function handlePrefChange() {
+  // If analysis was already run, changing a parameter automatically triggers a re-run
+  if (allFindings.length > 0) {
+    runAnalysis();
+  }
 }
 
 // ── Upload Handlers ─────────────────────────────────────────
+async function loadDemo(type) {
+  processUpload(DEMO_LEASES[type]);
+}
+
 async function handlePdfUpload(event) {
   const file = event.target.files[0]; if (!file) return;
   const form = new FormData(); form.append('file', file);
   if (sessionId) form.append('session_id', sessionId);
+  
+  // Basic upload handling
   const res = await fetch(`${API}/upload`, { method: 'POST', body: form });
   const data = await res.json();
   if (data.ok) {
-    sessionId = data.session_id; leaseText = data.lease_text || '';
-    showUploadStatus(data.char_count); renderLeaseText(); resetFindings();
+    sessionId = data.session_id; 
+    leaseText = data.lease_text || '';
+    finalizeUpload(data.char_count);
   }
 }
 
 async function submitPasteText() {
   const text = document.getElementById('paste-input').value.trim(); if (!text) return;
+  closePasteModal();
+  processUpload(text);
+}
+
+async function processUpload(text) {
   const body = { text }; if (sessionId) body.session_id = sessionId;
   const res = await fetch(`${API}/upload/text`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const data = await res.json();
   if (data.ok) {
-    sessionId = data.session_id; leaseText = data.lease_text || text;
-    showUploadStatus(data.char_count); renderLeaseText(); closePasteModal(); resetFindings();
+    sessionId = data.session_id; 
+    leaseText = data.lease_text || text;
+    finalizeUpload(data.char_count);
   }
 }
 
-function showUploadStatus(charCount) {
+function finalizeUpload(charCount) {
   document.getElementById('upload-status').classList.remove('hidden');
   document.getElementById('char-count').textContent = charCount.toLocaleString();
   document.getElementById('qa-session-note').textContent = `Context: Document Loaded`;
   document.getElementById('qa-session-note').classList.replace('text-gray-400', 'text-indigo-600');
+  
+  resetAnalysis();
+  
+  // Asynchronous render for large documents
+  renderLeaseTextAsync(false);
+  
+  // Simulate Agent Pre-indexing
+  document.getElementById('analysis-status-container').classList.remove('hidden');
+  const logContainer = document.getElementById('analysis-logs');
+  logContainer.innerHTML = '';
+  appendLog('analysis-logs', 'Document indexed to active memory.', 'clickhouse', 'success');
+  appendLog('analysis-logs', 'Awaiting analysis execution...', null, 'loading');
 }
+
+function renderLeaseTextAsync(withHighlights = false) {
+  if (!leaseText) return;
+  const view = document.getElementById('lease-view');
+  document.getElementById('lease-placeholder').classList.add('hidden');
+  
+  // Show loading overlay
+  const loader = document.getElementById('doc-loading-overlay');
+  loader.classList.remove('hidden');
+  view.classList.add('opacity-0');
+  
+  // Yield to main thread so overlay paints, then process text
+  setTimeout(() => {
+    if (withHighlights) {
+      applyHighlights(view);
+    } else {
+      view.innerHTML = escHtml(leaseText);
+    }
+    view.classList.remove('hidden');
+    
+    // Hide overlay
+    loader.classList.add('hidden');
+    view.classList.remove('opacity-0');
+  }, 50);
+}
+
 
 // ── Dynamic Tool Logging Component ──────────────────────────
 function appendLog(containerId, text, tool = null, status = 'loading') {
@@ -374,7 +449,6 @@ function appendLog(containerId, text, tool = null, status = 'loading') {
   } else {
     container.appendChild(entry);
   }
-  
   container.scrollTop = container.scrollHeight;
 }
 
@@ -389,9 +463,15 @@ function getPreferences() {
 async function runAnalysis() {
   if (!sessionId) { alert('Please upload a document first.'); return; }
 
-  resetFindings();
+  // Clean UI for new run
+  if (analysisEventSource) { analysisEventSource.close(); }
+  allFindings = []; activeIndex = null;
+  document.getElementById('findings-list').innerHTML = '';
+  document.getElementById('findings-count').textContent = '0';
   document.getElementById('findings-empty').classList.add('hidden');
   document.getElementById('findings-header').classList.remove('hidden');
+  document.getElementById('reset-btn').classList.remove('hidden');
+  closeDetail();
   
   const btn = document.getElementById('analyze-btn');
   btn.disabled = true; btn.textContent = 'Agent processing...';
@@ -400,20 +480,20 @@ async function runAnalysis() {
   logContainer.innerHTML = '';
   document.getElementById('analysis-status-container').classList.remove('hidden');
 
-  appendLog('analysis-logs', 'Extracting document structure...', 'llm', 'loading');
+  appendLog('analysis-logs', 'Extracting document structure based on parameters...', 'llm', 'loading');
 
   const prefs = getPreferences();
   const url = `${API}/analyze/stream?session_id=${sessionId}&preferences=${encodeURIComponent(JSON.stringify(prefs))}`;
-  const es = new EventSource(url);
+  analysisEventSource = new EventSource(url);
   
   let findingCount = 0;
 
-  es.addEventListener('stage', e => {
-    appendLog('analysis-logs', 'Extracting document structure...', 'llm', 'success');
+  analysisEventSource.addEventListener('stage', e => {
+    appendLog('analysis-logs', 'Extracting document structure based on parameters...', 'llm', 'success');
     appendLog('analysis-logs', 'Vector mapping clauses against NY Law...', 'clickhouse', 'loading');
   });
 
-  es.addEventListener('finding', e => {
+  analysisEventSource.addEventListener('finding', e => {
     findingCount++;
     if (findingCount === 1) {
       appendLog('analysis-logs', 'Vector mapping clauses against NY Law...', 'clickhouse', 'success');
@@ -424,21 +504,24 @@ async function runAnalysis() {
     allFindings.push(finding);
     document.getElementById('findings-count').textContent = allFindings.length;
     appendFindingCard(finding, allFindings.length - 1);
-    highlightLease();
     
     appendLog('analysis-logs', `Flagged issue: ${finding.title}`, null, 'success');
+    
+    // Asynchronous render of highlights so browser doesn't freeze during rapid SSE events
+    clearTimeout(window._highlightTimer);
+    window._highlightTimer = setTimeout(() => { renderLeaseTextAsync(true); }, 100);
   });
 
-  es.addEventListener('done', e => {
+  analysisEventSource.addEventListener('done', e => {
     appendLog('analysis-logs', `Analysis complete. Found ${findingCount} items.`, null, 'success');
-    btn.disabled = false; btn.textContent = 'Run Document Analysis';
-    es.close();
+    btn.disabled = false; btn.textContent = 'Run Analysis';
+    analysisEventSource.close();
   });
 
-  es.addEventListener('error', e => {
+  analysisEventSource.addEventListener('error', e => {
     if (e.data) { const d = JSON.parse(e.data); alert('Error: ' + d.message); }
     btn.disabled = false; btn.textContent = 'Retry Analysis';
-    es.close();
+    analysisEventSource.close();
   });
 }
 
@@ -516,18 +599,7 @@ function closeDetail() {
   activeIndex = null;
 }
 
-function renderLeaseText() {
-  if (!leaseText) return;
-  const view = document.getElementById('lease-view');
-  view.classList.remove('hidden');
-  document.getElementById('lease-placeholder').classList.add('hidden');
-  view.innerHTML = escHtml(leaseText);
-}
-
-function highlightLease() {
-  if (!leaseText) return;
-  const view = document.getElementById('lease-view');
-  
+function applyHighlights(view) {
   const sorted = allFindings
     .map((f, idx) => ({ ...f, origIdx: idx }))
     .filter(f => f.char_start >= 0 && f.char_end > f.char_start)
@@ -542,7 +614,7 @@ function highlightLease() {
     if (start > cursor) html += escHtml(leaseText.slice(cursor, start));
 
     const cls = f.severity === 'RED' ? 'critical' : f.severity === 'YELLOW' ? 'warning' : 'info';
-    html += `<mark class="${cls} cursor-pointer transition hover:opacity-80" id="mark-${f.origIdx}" onclick="selectFinding(${f.origIdx})">${escHtml(leaseText.slice(start, end))}</mark>`;
+    html += `<mark class="${cls} cursor-pointer transition hover:opacity-80 shadow-sm" id="mark-${f.origIdx}" onclick="selectFinding(${f.origIdx})">${escHtml(leaseText.slice(start, end))}</mark>`;
     cursor = end;
   }
   html += escHtml(leaseText.slice(cursor));
@@ -606,21 +678,13 @@ function renderQaResult(data) {
   } else { lb.classList.add('hidden'); }
 
   const law = data.law || {};
-  
-  // Custom Default Fallback mapped to specific NYC Heating Admin Code Link
   document.getElementById('qa-statute').textContent = law.statute || 'NYC Admin Code § 27-2029';
   document.getElementById('qa-law-summary').textContent = law.summary || 'Heat must be provided from October 1 to May 31. Between 6am-10pm, the minimum temperature is 68°F when the outside temperature is below 55°F. Between 10pm-6am, the minimum temperature is always 62°F.';
   
   const link = document.getElementById('qa-law-link');
   const fallbackUrl = 'https://nycadmincode.readthedocs.io/t27/c02/sch02/art08/';
   
-  if (law.source_url) { 
-    link.href = law.source_url; 
-    link.classList.remove('hidden'); 
-  } else { 
-    link.href = fallbackUrl;
-    link.classList.remove('hidden'); 
-  }
+  if (law.source_url) { link.href = law.source_url; link.classList.remove('hidden'); } else { link.href = fallbackUrl; link.classList.remove('hidden'); }
 
   const sevBadge = document.getElementById('qa-severity-badge');
   sevBadge.classList.remove('hidden');
